@@ -7225,3 +7225,85 @@ spec:
       storage: true
       subresources:
         status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: trinoconnections.superset.stackable.tech
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  group: superset.stackable.tech
+  names:
+    categories: []
+    kind: TrinoConnection
+    plural: trinoconnections
+    shortNames: []
+    singular: trinoconnection
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns: []
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: Auto-generated derived type for TrinoConnectionSpec via `CustomResource`
+          properties:
+            spec:
+              description: The TrinoConnection resource can be used to automatically deploy a Trino datasource in Superset. Learn more about it in the [Superset operator usage guide](https://docs.stackable.tech/home/nightly/superset/usage-guide/connecting-trino).
+              properties:
+                trino:
+                  description: The Trino to connect.
+                  properties:
+                    name:
+                      description: The name of the stacklet.
+                      type: string
+                    namespace:
+                      description: The namespace. Defaults to the namespace of the `TrinoConnection` if it is not specified.
+                      nullable: true
+                      type: string
+                  required:
+                    - name
+                  type: object
+                superset:
+                  description: The Superset to connect.
+                  properties:
+                    name:
+                      description: The name of the stacklet.
+                      type: string
+                    namespace:
+                      description: The namespace. Defaults to the namespace of the `TrinoConnection` if it is not specified.
+                      nullable: true
+                      type: string
+                  required:
+                    - name
+                  type: object
+              required:
+                - trino
+                - superset
+              type: object
+            status:
+              nullable: true
+              properties:
+                condition:
+                  enum:
+                    - Pending
+                    - Importing
+                    - Ready
+                    - Failed
+                  type: string
+                startedAt:
+                  description: Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers.
+                  format: date-time
+                  nullable: true
+                  type: string
+              required:
+                - condition
+              type: object
+          required:
+            - spec
+          title: TrinoConnection
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
