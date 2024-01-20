@@ -1,6 +1,7 @@
 mod config;
 mod controller_commons;
 mod druid_connection_controller;
+mod trino_connection_controller;
 mod operations;
 mod product_logging;
 mod rbac;
@@ -8,6 +9,7 @@ mod superset_controller;
 mod util;
 
 use crate::druid_connection_controller::DRUID_CONNECTION_CONTROLLER_NAME;
+use crate::trino_connection_controller::TRINO_CONNECTION_CONTROLLER_NAME;
 use crate::superset_controller::SUPERSET_CONTROLLER_NAME;
 
 use clap::{crate_description, crate_version, Parser};
@@ -28,7 +30,7 @@ use stackable_operator::{
     CustomResourceExt,
 };
 use stackable_superset_crd::{
-    authentication::SupersetAuthentication, druidconnection::DruidConnection, SupersetCluster,
+    authentication::SupersetAuthentication, druidconnection::DruidConnection, trinoconnection::TrinoConnection, SupersetCluster,
     APP_NAME,
 };
 use std::sync::Arc;
@@ -56,6 +58,7 @@ async fn main() -> anyhow::Result<()> {
         Command::Crd => {
             SupersetCluster::print_yaml_schema(built_info::CARGO_PKG_VERSION)?;
             DruidConnection::print_yaml_schema(built_info::CARGO_PKG_VERSION)?;
+            TrinoConnection::print_yaml_schema(built_info::CARGO_PKG_VERSION)?;
         }
         Command::Run(ProductOperatorRun {
             product_config,
@@ -200,9 +203,82 @@ async fn main() -> anyhow::Result<()> {
                     )
                 });
 
-            futures::stream::select(superset_controller, druid_connection_controller)
-                .collect::<()>()
-                .await;
+            let trino_connection_controller_builder = Controller::new(
+                watch_namespace.get_api::<TrinoConnection>(&client),
+                watcher::Config::default(),
+            );
+            let trino_connection_store_1 = trino_connection_controller_builder.store();
+            let trino_connection_store_2 = trino_connection_controller_builder.store();
+            let trino_connection_store_3 = trino_connection_controller_builder.store();
+            let trino_connection_controller = trino_connection_controller_builder
+                .shutdown_on_signal()
+                .watches(
+                    watch_namespace.get_api::<SupersetCluster>(&client),
+                    watcher::Config::default(),
+                    move |superset_cluster| {
+                        trino_connection_store_1
+                            .state()
+                            .into_iter()
+                            .filter(move |trino_connection| {
+                                trino_connection.superset_name() == superset_cluster.name_any()
+                                    && trino_connection.superset_namespace().ok()
+                                        == superset_cluster.namespace()
+                            })
+                            .map(|trino_connection| ObjectRef::from_obj(&*trino_connection))
+                    },
+                )
+                .watches(
+                    watch_namespace.get_api::<Job>(&client),
+                    watcher::Config::default(),
+                    move |job| {
+                        trino_connection_store_2
+                            .state()
+                            .into_iter()
+                            .filter(move |trino_connection| {
+                                trino_connection.metadata.namespace == job.metadata.namespace
+                                    && Some(trino_connection.job_name()) == job.metadata.name
+                            })
+                            .map(|trino_connection| ObjectRef::from_obj(&*trino_connection))
+                    },
+                )
+                .watches(
+                    watch_namespace.get_api::<ConfigMap>(&client),
+                    watcher::Config::default(),
+                    move |config_map| {
+                        trino_connection_store_3
+                            .state()
+                            .into_iter()
+                            .filter(move |trino_connection| {
+                                trino_connection.trino_namespace().ok()
+                                    == config_map.metadata.namespace
+                                    && Some(trino_connection.trino_name())
+                                        == config_map.metadata.name
+                            })
+                            .map(|trino_connection| ObjectRef::from_obj(&*trino_connection))
+                    },
+                )
+                .run(
+                    trino_connection_controller::reconcile_trino_connection,
+                    trino_connection_controller::error_policy,
+                    Arc::new(trino_connection_controller::Ctx {
+                        client: client.clone(),
+                    }),
+                )
+                .map(|res| {
+                    report_controller_reconciled(
+                        &client,
+                        &format!("{TRINO_CONNECTION_CONTROLLER_NAME}.{OPERATOR_NAME}"),
+                        &res,
+                    )
+                });
+
+            futures::stream::select(
+                futures::stream::select(druid_connection_controller, trino_connection_controller),
+                superset_controller
+            )
+            .collect::<()>()
+            .await; 
+
         }
     }
 

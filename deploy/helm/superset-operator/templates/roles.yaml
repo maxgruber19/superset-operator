@@ -95,6 +95,8 @@ rules:
       - {{ include "operator.name" . }}clusters
       - druidconnections
       - druidconnections/status
+      - trinoconnections
+      - trinoconnections/status
     verbs:
       - get
       - list

@@ -10,4 +10,4 @@ kind: ConfigMap
 metadata:
   name: trino
 data:
-  TRINO: jdbc:avatica:remote:url=http://derby-druid-router.default.svc.cluster.local:8888/druid/v2/sql/avatica/
+  TRINO_SQLALCHEMY: trino://simple-trino-coordinator-default-0.simple-trino-coordinator-default.default.svc.cluster.local:8443

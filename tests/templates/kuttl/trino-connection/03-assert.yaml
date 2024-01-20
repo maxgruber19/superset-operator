@@ -2,12 +2,12 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
 metadata:
-  name: install-druid-connection
+  name: install-trino-connection
 timeout: 300
 ---
 apiVersion: superset.stackable.tech/v1alpha1
-kind: DruidConnection
+kind: TrinoConnection
 metadata:
-  name: superset-druid-connection
+  name: superset-trino-connection
 status:
   condition: Pending
