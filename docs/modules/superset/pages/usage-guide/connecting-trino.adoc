@@ -1,0 +1,29 @@
+= Connecting Apache Trino clusters
+
+The operator can automatically connect Superset to Apache Trino clusters managed by the https://docs.stackable.tech/trino/index.html[Stackable Trino Cluster].
+
+To do so, create a _TrinoConnection_ resource:
+
+[source,yaml]
+----
+apiVersion: superset.stackable.tech/v1alpha1
+kind: TrinoConnection
+metadata:
+  name: superset-trino-connection
+spec:
+  superset:
+    name: superset
+    namespace: default
+  trino:
+    name: my-trino-cluster
+    namespace: default
+
+----
+
+The `name` and `namespace` in `spec.superset` refer to the Superset cluster that you want to connect. Following our example above, the name is `superset`.
+
+In `spec.trino` you specify the `name` and `namespace` of your Trino cluster.
+
+The `namespace` part is optional; if it is omitted it will default to the namespace of the TrinoConnection.
+
+The namespace for both the Superset and Trino clusters can be omitted, in which case the Operator will assume that they are in the same namespace as the TrinoConnection.
