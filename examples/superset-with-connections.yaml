@@ -1,0 +1,77 @@
+# helm install --repo https://repo.stackable.tech/repository/helm-stable/ secret-operator secret-operator
+# helm install --repo https://repo.stackable.tech/repository/helm-stable/ commons-operator commons-operator
+# helm install --repo https://charts.bitnami.com/bitnami --set auth.username=superset --set auth.password=superset --set auth.database=superset superset-postgresql postgresql
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: superset-credentials
+type: Opaque
+stringData:
+  adminUser.username: admin
+  adminUser.firstname: Superset
+  adminUser.lastname: Admin
+  adminUser.email: admin@superset.com
+  adminUser.password: admin
+  connections.secretKey: thisISaSECRET_1234
+  connections.sqlalchemyDatabaseUri: postgresql://superset:superset@superset-postgresql.default.svc.cluster.local/superset
+---
+apiVersion: superset.stackable.tech/v1alpha1
+kind: SupersetCluster
+metadata:
+  name: superset
+spec:
+  image:
+    productVersion: 3.0.1
+  clusterConfig:
+    credentialsSecret: superset-credentials
+    listenerClass: external-unstable
+  nodes:
+    roleGroups:
+      default:
+        config:
+          rowLimit: 10000
+          webserverTimeout: 300
+---
+apiVersion: superset.stackable.tech/v1alpha1
+kind: TrinoConnection
+metadata:
+  name: superset-trino-connection
+spec:
+  superset:
+    name: superset
+    namespace: default
+  trino:
+    name: trino
+    namespace: default
+---
+apiVersion: superset.stackable.tech/v1alpha1
+kind: DruidConnection
+metadata:
+  name: superset-druid-connection
+spec:
+  superset:
+    name: superset
+    namespace: default
+  druid:
+    name: druid
+    namespace: default
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: druid
+  namespace: default
+data:
+  DRUID_AVATICA_JDBC: jdbc:avatica:remote:url=http://derby-druid-router.default.svc.cluster.local:8888/druid/v2/sql/avatica/
+  DRUID_ROUTER: derby-druid-router.default.svc.cluster.local:8888
+  DRUID_SQLALCHEMY: druid://derby-druid-router.default.svc.cluster.local:8888/druid/v2/sql
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trino
+  namespace: default
+data:
+  TRINO_SQLALCHEMY: trino://trino-coordinator-default-0.simple-trino-coordinator-default.default.svc.cluster.local:8443
