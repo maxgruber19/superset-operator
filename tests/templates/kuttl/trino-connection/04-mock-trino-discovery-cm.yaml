@@ -1,0 +1,13 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: mock-trino-discovery-cm
+timeout: 300
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trino
+data:
+  TRINO_SQLALCHEMY: trino://simple-trino-coordinator-default-0.simple-trino-coordinator-default.default.svc.cluster.local:8443

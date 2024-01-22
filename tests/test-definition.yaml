@@ -33,6 +33,10 @@ tests:
     dimensions:
       - superset
       - openshift
+  - name: trino-connection
+    dimensions:
+      - superset
+      - openshift
   - name: ldap
     dimensions:
       - superset

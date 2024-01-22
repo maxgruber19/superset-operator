@@ -31,6 +31,7 @@ use crate::{affinity::get_affinity, authentication::SupersetAuthentication};
 pub mod affinity;
 pub mod authentication;
 pub mod druidconnection;
+pub mod trinoconnection;
 
 pub const APP_NAME: &str = "superset";
 pub const STACKABLE_CONFIG_DIR: &str = "/stackable/config";

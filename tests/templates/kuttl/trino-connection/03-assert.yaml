@@ -1,0 +1,13 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+metadata:
+  name: install-trino-connection
+timeout: 300
+---
+apiVersion: superset.stackable.tech/v1alpha1
+kind: TrinoConnection
+metadata:
+  name: superset-trino-connection
+status:
+  condition: Pending
